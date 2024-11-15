@@ -1,0 +1,74 @@
+plugins {
+    id "java"
+    id "groovy"
+    id "org.springframework.boot" version "${springBootVersion}"
+    id "io.spring.dependency-management" version "${dependencyManagementVersion}"
+}
+group = 'az.ingress'
+sourceCompatibility = "17"
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+    }
+}
+
+dependencies {
+    //spring
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    //redis
+    implementation "org.redisson:redisson-spring-boot-starter:${redisVersion}"
+    implementation "io.github.resilience4j:resilience4j-spring-boot2:${resilience4jVersion}"
+
+    //feign
+    implementation "org.springframework.cloud:spring-cloud-starter-openfeign"
+
+    //lombok
+    annotationProcessor 'org.projectlombok:lombok'
+    compileOnly 'org.projectlombok:lombok'
+
+    //swagger
+    implementation "org.springdoc:springdoc-openapi-ui:$openApiVersion"
+
+    //postgresql
+    runtimeOnly 'org.postgresql:postgresql'
+
+    //liquibase
+    implementation 'org.liquibase:liquibase-core'
+
+    //testing
+    testImplementation "org.apache.groovy:groovy:$groovyVersion"
+    testImplementation "org.spockframework:spock-spring:$spockSpringVersion"
+    testImplementation "io.github.benas:random-beans:$randomBeansVersion"
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+
+}
+
+ext {
+    set('springCloudVersion', "2023.0.2")
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2021.0.5"
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
