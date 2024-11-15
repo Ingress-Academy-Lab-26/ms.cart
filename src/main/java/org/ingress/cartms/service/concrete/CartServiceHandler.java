@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.ingress.cartms.annotation.Log;
 import org.ingress.cartms.client.ProductClient;
 import org.ingress.cartms.dao.entity.CartEntity;
-import org.ingress.cartms.exception.DataAccessException;
 import org.ingress.cartms.dao.repository.CartRepository;
 import org.ingress.cartms.exception.NotFoundException;
 import org.ingress.cartms.mapper.CartMapper;
@@ -15,7 +14,6 @@ import org.ingress.cartms.model.response.UserCartsResponse;
 import org.ingress.cartms.service.abstracts.CartCacheService;
 import org.ingress.cartms.service.abstracts.CartService;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -40,7 +38,6 @@ public class CartServiceHandler implements CartService {
 
 
     @Override
-    @Transactional
     public void insertOrUpdateCart(CartRequest cartRequest) {
 
             CartEntity cartEntity = cartRepository.findByBuyerIdAndProductId(cartRequest.getBuyerId(), cartRequest.getProductId())
@@ -55,7 +52,6 @@ public class CartServiceHandler implements CartService {
     }
 
     @Override
-    @Transactional
     public void deleteCart(Long buyerId, Long productId) {
 
             CartEntity cart = fetchCartIfExist(buyerId, productId);
@@ -65,7 +61,6 @@ public class CartServiceHandler implements CartService {
             cartCacheService.deleteUserCartFromCache(buyerId, productId);
 
     }
-
 
     @Override
     public Map<Long, List<UserCartsResponse>> getCartsByUserId(Long buyerId) {
@@ -80,45 +75,23 @@ public class CartServiceHandler implements CartService {
                     .map(CartMapper::toUserCartsResponse)
                     .toList();
 
-            Map<Long, List<UserCartsResponse>> groupedCarts = userCarts.stream()
+
+        return userCarts.stream()
                     .collect(Collectors.groupingBy(UserCartsResponse::getSupplierId));
-
-
-            return groupedCarts;
 
     }
 
-    /**
-     * Fetches a cart entity if it exists; throws NotFoundException otherwise.
-     *
-     * @param buyerId   the unique identifier of the user
-     * @param productId the unique identifier of the product
-     * @return the fetched CartEntity
-     */
     private CartEntity fetchCartIfExist(Long buyerId, Long productId) {
         return cartRepository.findByBuyerIdAndProductId(buyerId, productId)
                 .orElseThrow(() -> new NotFoundException(CART_NOT_FOUND_CODE + buyerId, CART_NOT_FOUND_MESSAGE));
     }
 
-    /**
-     * Updates an existing cart entity with new details.
-     *
-     * @param existingCart the cart entity to be updated
-     * @param cartRequest  the request containing updated cart details
-     * @return the updated CartEntity
-     */
     private CartEntity updateExistingCart(CartEntity existingCart, CartRequest cartRequest) {
         existingCart.setQuantity(cartRequest.getQuantity());
         log.debug("Updated cart quantity for cartId: {}", existingCart.getId());
         return existingCart;
     }
 
-    /**
-     * Creates a new cart entity from the request.
-     *
-     * @param cartRequest the request containing cart details
-     * @return the newly created CartEntity
-     */
     private CartEntity createNewCart(CartRequest cartRequest) {
         CartEntity newCart = CartMapper.toEntity(cartRequest);
         log.debug("Created new cart for buyerId: {}, productId: {}", cartRequest.getBuyerId(), cartRequest.getProductId());
