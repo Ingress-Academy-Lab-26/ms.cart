@@ -7,6 +7,8 @@ import org.ingress.cartms.model.enums.CartStatus;
 
 import javax.persistence.*;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import static javax.persistence.GenerationType.IDENTITY;
@@ -18,7 +20,11 @@ import static javax.persistence.GenerationType.IDENTITY;
 @Builder
 @Entity
 @Table(name = "cart")
-public class CartEntity {
+public class CartEntity implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     @Id
     @GeneratedValue(strategy = IDENTITY)
     private Long id;
