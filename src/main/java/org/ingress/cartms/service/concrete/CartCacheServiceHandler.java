@@ -27,7 +27,7 @@ public class CartCacheServiceHandler implements CartCacheService {
 
     @Async
     @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackSaveUserCartToCache")
-    @Retry(name = "REDIS_CACHE_RETRY", fallbackMethod = "fallbackSaveUserCartToCache")
+    @Retry(name = REDIS_CACHE_RETRY, fallbackMethod = "fallbackSaveUserCartToCache")
     @Override
     public void saveUserCartToCache(Long buyerId, CartEntity cart) {
 
@@ -58,7 +58,7 @@ public class CartCacheServiceHandler implements CartCacheService {
 
     @Async
     @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackUpdateUserCartInCache")
-    @Retry(name = "REDIS_CACHE_RETRY", fallbackMethod = "fallbackUpdateUserCartInCache")
+    @Retry(name = REDIS_CACHE_RETRY, fallbackMethod = "fallbackUpdateUserCartInCache")
     @Override
     public void updateUserCartInCache(Long buyerId, CartEntity cart) {
         cacheUtil.saveToCache(getUserCartCacheKey(buyerId, cart.getProductId()), cart, CART_CACHE_EXPIRATION_COUNT, CART_CACHE_EXPIRATION_UNIT);
@@ -73,7 +73,7 @@ public class CartCacheServiceHandler implements CartCacheService {
 
     @Async
     @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackDeleteUserCartFromCache")
-    @Retry(name = "REDIS_CACHE_RETRY", fallbackMethod = "fallbackDeleteUserCartFromCache")
+    @Retry(name = REDIS_CACHE_RETRY, fallbackMethod = "fallbackDeleteUserCartFromCache")
     @Override
     public void deleteUserCartFromCache(Long buyerId, Long productId) {
         cacheUtil.deleteFromCache(getUserCartCacheKey(buyerId, productId));
@@ -86,13 +86,6 @@ public class CartCacheServiceHandler implements CartCacheService {
         // Additional fallback logic can be implemented here
     }
 
-    /**
-     * Constructs the cache key for a specific user and product.
-     *
-     * @param buyerId   the unique identifier of the user
-     * @param productId the unique identifier of the product
-     * @return the constructed cache key
-     */
     private String getUserCartCacheKey(Long buyerId, Long productId) {
         return CART_CACHE_KEY + buyerId + ":" + productId;
     }
