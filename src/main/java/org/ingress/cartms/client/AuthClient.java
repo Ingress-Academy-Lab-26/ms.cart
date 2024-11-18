@@ -10,9 +10,9 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
 @FeignClient(name= "ms-auth",
         url = "${client.ms-auth.url}",
-        path = "/v1/verify", configuration = CustomErrorDecoder.class)
+        path = "/internal/v1/verify", configuration = CustomErrorDecoder.class)
 public interface AuthClient {
 
-    @GetMapping
+    @PostMapping
     void verify(@RequestHeader(AUTHORIZATION) String accessToken);
 }

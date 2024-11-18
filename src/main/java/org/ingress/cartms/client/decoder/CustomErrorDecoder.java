@@ -2,36 +2,53 @@ package org.ingress.cartms.client.decoder;
 
 import static org.ingress.cartms.client.decoder.JsonNodeFieldName.MESSAGE;
 import static org.ingress.cartms.exception.ExceptionConstraints.CLIENT_ERROR;
+import static org.springframework.http.HttpStatus.Series.SERVER_ERROR;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Response;
 import feign.codec.ErrorDecoder;
+import lombok.extern.slf4j.Slf4j;
 import org.ingress.cartms.exception.CustomFeignException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
+@Slf4j
 public class CustomErrorDecoder implements ErrorDecoder {
 
-    private static final Logger log = LoggerFactory.getLogger(CustomErrorDecoder.class);
+
 
     @Override
     public Exception decode(String methodKey, Response response) {
         var errorMessage = CLIENT_ERROR;
+        var statusCode = response.status();
 
         JsonNode jsonNode;
         try (var body = response.body().asInputStream()) {
             jsonNode = new ObjectMapper().readValue(body, JsonNode.class);
         } catch (Exception e) {
-            throw new CustomFeignException(CLIENT_ERROR, response.status());
+            log.error("Failed to parse response body for method {} with status {}", methodKey, statusCode, e);
+            return new CustomFeignException(CLIENT_ERROR, statusCode);
         }
 
-        if (jsonNode.has(MESSAGE.getValue())) {
-            errorMessage = jsonNode.get(MESSAGE.getValue()).asText();
+        if (statusCode >= 400 && statusCode < 500) {
+            if (jsonNode.has(MESSAGE.getValue())) {
+                errorMessage = jsonNode.get(MESSAGE.getValue()).asText();
+            }
+            log.error("Client error while calling method {} with status {} and message: {}",
+                    methodKey, statusCode, errorMessage);
+            return new CustomFeignException(errorMessage, statusCode);
         }
 
-        log.error("ActionLog.decode.error Message: {}, Method: {}", errorMessage, methodKey);
-        return new CustomFeignException(errorMessage, response.status());
+        if (statusCode >= 500) {
+            errorMessage = jsonNode.has(MESSAGE.getValue()) ? jsonNode.get(MESSAGE.getValue()).asText() : String.valueOf(SERVER_ERROR);
+            log.error("Server error while calling method {} with status {} and message: {}",
+                    methodKey, statusCode, errorMessage);
+            return new CustomFeignException(errorMessage, statusCode);
+        }
+
+        log.warn("Unexpected error while calling method {} with status {} and message: {}",
+                methodKey, statusCode, errorMessage);
+        return new CustomFeignException("Unexpected error: " + errorMessage, statusCode);
+
     }
 }

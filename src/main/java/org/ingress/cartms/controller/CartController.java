@@ -13,7 +13,7 @@ import java.util.Map;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
-@RequestMapping("/api/carts")
+@RequestMapping("/v1/carts")
 @RequiredArgsConstructor
 public class CartController {
 
