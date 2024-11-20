@@ -80,4 +80,15 @@ public class ErrorHandler extends DefaultErrorAttributes {
         attributes.put("fieldErrors", errors);
         return new ResponseEntity<>(attributes, status);
     }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ExceptionResponse> handle(AuthenticationException ex) {
+        log.error("AuthenticationException: ", ex);
+        return ResponseEntity.status(ex.getStatus()).body(
+                ExceptionResponse.builder()
+                        .code(ex.getCode())
+                        .message(ex.getMessage())
+                        .build()
+        );
+    }
 }

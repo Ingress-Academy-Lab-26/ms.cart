@@ -5,11 +5,14 @@ import org.ingress.cartms.model.request.CartRequest;
 import org.ingress.cartms.model.response.UserCartsResponse;
 import org.ingress.cartms.service.abstracts.CartService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Map;
 
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.*;
 
 @RestController
@@ -22,19 +25,22 @@ public class CartController {
 
     @PostMapping
     @ResponseStatus(CREATED)
-    public void saveCart(@Valid @RequestBody CartRequest cartRequest) {
+    @PreAuthorize("@authService.verifyToken(#accessToken)")
+    public void saveCart(@Valid @RequestBody CartRequest cartRequest, @RequestHeader(AUTHORIZATION) String accessToken) {
         cartService.insertOrUpdateCart(cartRequest);
     }
 
     @DeleteMapping
     @ResponseStatus(NO_CONTENT)
-    public void deleteCart(@RequestParam Long buyerId, @RequestParam Long productId) {
+    @PreAuthorize("@authService.verifyToken(#accessToken)")
+    public void deleteCart(@RequestParam Long buyerId, @RequestParam Long productId, @RequestHeader(AUTHORIZATION) String accessToken) {
         cartService.deleteCart(buyerId, productId);
     }
 
     @GetMapping
     @ResponseStatus(OK)
-    public Map<Long, List<UserCartsResponse>> getCartsByUserId(@RequestParam Long buyerId) {
+    @PreAuthorize("@authService.verifyToken(#accessToken)")
+    public Map<Long, List<UserCartsResponse>> getCartsByUserId(@RequestParam Long buyerId, @RequestHeader(AUTHORIZATION) String accessToken) {
         return cartService.getCartsByUserId(buyerId);
     }
 

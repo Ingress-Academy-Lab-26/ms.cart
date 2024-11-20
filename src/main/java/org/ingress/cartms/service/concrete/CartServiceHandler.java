@@ -14,11 +14,10 @@ import org.ingress.cartms.model.response.UserCartsResponse;
 import org.ingress.cartms.service.abstracts.CartCacheService;
 import org.ingress.cartms.service.abstracts.CartService;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
-
 import static org.ingress.cartms.exception.ExceptionConstraints.CART_NOT_FOUND_CODE;
 import static org.ingress.cartms.exception.ExceptionConstraints.CART_NOT_FOUND_MESSAGE;
 
@@ -40,15 +39,29 @@ public class CartServiceHandler implements CartService {
     @Override
     public void insertOrUpdateCart(CartRequest cartRequest) {
 
-            CartEntity cartEntity = cartRepository.findByBuyerIdAndProductId(cartRequest.getBuyerId(), cartRequest.getProductId())
-                    .map(existingCart -> updateExistingCart(existingCart, cartRequest))
-                    .orElseGet(() -> createNewCart(cartRequest));
+        CartEntity cartEntity = fetchOrCreateCart(cartRequest);
 
-            cartEntity.setSupplierId(productClient.getSupplierByProductId(cartEntity.getProductId()));
-            cartRepository.save(cartEntity);
+        cartEntity.setSupplierId(productClient.getSupplierByProductId(cartEntity.getProductId()));
+        cartRepository.save(cartEntity);
 
-            cartCacheService.saveUserCartToCache(cartRequest.getBuyerId(), cartEntity);
+        cartCacheService.saveUserCartToCache(cartRequest.getBuyerId(), cartEntity);
 
+    }
+
+    private CartEntity fetchOrCreateCart(CartRequest cartRequest) {
+
+        return getCartFromCacheOrDatabase(cartRequest)
+                .map(existingCart -> updateExistingCart(existingCart, cartRequest))
+                .orElseGet(() -> createNewCart(cartRequest));
+    }
+
+    private Optional<CartEntity> getCartFromCacheOrDatabase(CartRequest cartRequest) {
+        Optional<CartEntity> cachedCart = cartCacheService.getUserCartFromCache(cartRequest.getBuyerId(), cartRequest.getProductId());
+
+        if (cachedCart.isEmpty()) {
+            cachedCart = cartRepository.findByBuyerIdAndProductId(cartRequest.getBuyerId(), cartRequest.getProductId());
+        }
+        return cachedCart;
     }
 
     @Override
@@ -61,24 +74,45 @@ public class CartServiceHandler implements CartService {
             cartCacheService.deleteUserCartFromCache(buyerId, productId);
 
     }
-
     @Override
     public Map<Long, List<UserCartsResponse>> getCartsByUserId(Long buyerId) {
+        List<CartEntity> carts = getCartsFromCacheOrDatabase(buyerId);
 
-            List<CartEntity> carts = cartRepository.findByBuyerId(buyerId);
+        List<UserCartsResponse> userCarts = processCarts(carts);
 
-            carts.forEach(cart -> cartCacheService.saveUserCartToCache(buyerId, cart));
-//list formasinda cache ye yazmaq
-            List<UserCartsResponse> userCarts = carts.stream()
-                    .filter(cart -> cart.getBuyerId().equals(buyerId) && cart.getStatus() == CartStatus.ACTIVE)
-                    .sorted((c1, c2) -> c2.getCreatedAt().compareTo(c1.getCreatedAt()))
-                    .map(CartMapper::toUserCartsResponse)
-                    .toList();
+        return groupCartsBySupplier(userCarts);
+    }
 
+    private List<CartEntity> getCartsFromCacheOrDatabase(Long buyerId) {
+        List<CartEntity> carts = cartCacheService.getUserCartsFromCache(buyerId);
 
+        if (carts == null || carts.isEmpty()) {
+            carts = cartRepository.findByBuyerId(buyerId);
+            cartCacheService.saveUserCartsToCache(buyerId, carts);
+        }
+
+        return carts;
+    }
+
+    private List<UserCartsResponse> processCarts(List<CartEntity> carts) {
+        return carts.stream()
+                .filter(this::isActiveCart)
+                .sorted(this::compareByCreatedAtDescending)
+                .map(CartMapper::toUserCartsResponse)
+                .toList();
+    }
+
+    private boolean isActiveCart(CartEntity cart) {
+        return cart.getStatus() == CartStatus.ACTIVE;
+    }
+
+    private int compareByCreatedAtDescending(CartEntity c1, CartEntity c2) {
+        return c2.getCreatedAt().compareTo(c1.getCreatedAt());
+    }
+
+    private Map<Long, List<UserCartsResponse>> groupCartsBySupplier(List<UserCartsResponse> userCarts) {
         return userCarts.stream()
-                    .collect(Collectors.groupingBy(UserCartsResponse::getSupplierId));
-
+                .collect(Collectors.groupingBy(UserCartsResponse::getSupplierId));
     }
 
     private CartEntity fetchCartIfExist(Long buyerId, Long productId) {
@@ -88,15 +122,10 @@ public class CartServiceHandler implements CartService {
 
     private CartEntity updateExistingCart(CartEntity existingCart, CartRequest cartRequest) {
         existingCart.setQuantity(cartRequest.getQuantity());
-        log.debug("Updated cart quantity for cartId: {}", existingCart.getId());
         return existingCart;
     }
 
     private CartEntity createNewCart(CartRequest cartRequest) {
-        CartEntity newCart = CartMapper.toEntity(cartRequest);
-        log.debug("Created new cart for buyerId: {}, productId: {}", cartRequest.getBuyerId(), cartRequest.getProductId());
-        return newCart;
+        return CartMapper.toEntity(cartRequest);
     }
 }
-
-

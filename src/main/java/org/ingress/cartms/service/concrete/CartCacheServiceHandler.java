@@ -14,6 +14,9 @@ import io.github.resilience4j.retry.annotation.Retry;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
+import java.util.List;
+import java.util.Optional;
+
 import static org.ingress.cartms.util.CartCacheConstraints.*;
 
 @Slf4j
@@ -43,10 +46,17 @@ public class CartCacheServiceHandler implements CartCacheService {
     }
 
 
+//    @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackGetUserCartFromCache")
+//    @Override
+//    public CartEntity getUserCartFromCache(Long buyerId, Long productId) {
+//        return cacheUtil.getBucket(getUserCartCacheKey(buyerId, productId));
+//    }
+
     @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackGetUserCartFromCache")
     @Override
-    public CartEntity getUserCartFromCache(Long buyerId, Long productId) {
-        return cacheUtil.getBucket(getUserCartCacheKey(buyerId, productId));
+    public Optional<CartEntity> getUserCartFromCache(Long buyerId, Long productId) {
+        CartEntity cart = cacheUtil.getBucket(getUserCartCacheKey(buyerId, productId));
+        return Optional.ofNullable(cart);
     }
 
 
@@ -83,7 +93,6 @@ public class CartCacheServiceHandler implements CartCacheService {
 
     public void fallbackDeleteUserCartFromCache(Long buyerId, Long productId, Throwable throwable) {
         log.error("Failed to delete cart for buyerId {} and productId {} from cache due to Redis outage.", buyerId, productId, throwable);
-        // Additional fallback logic can be implemented here
     }
 
     private String getUserCartCacheKey(Long buyerId, Long productId) {
@@ -98,6 +107,38 @@ public class CartCacheServiceHandler implements CartCacheService {
         var cartEntityList = cartRepository.findAll();
         cacheUtil.saveToCache(CART_CACHE_KEY, cartEntityList, CART_CACHE_EXPIRATION_COUNT, CART_CACHE_EXPIRATION_UNIT);
         log.info("Carts saved to cache with key: {}", CART_CACHE_KEY);
+    }
+
+    @Async
+    @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackSaveUserCartsToCache")
+    @Retry(name = REDIS_CACHE_RETRY, fallbackMethod = "fallbackSaveUserCartsToCache")
+    @Override
+    public void saveUserCartsToCache(Long buyerId, List<CartEntity> carts) {
+        try {
+            String cacheKey = getUserCartListCacheKey(buyerId);
+
+            cacheUtil.saveToCache(cacheKey, carts, CART_CACHE_EXPIRATION_COUNT, CART_CACHE_EXPIRATION_UNIT);
+
+            log.info("Cart list for buyerId {} saved to cache.", buyerId);
+        } catch (Exception e) {
+            log.error("Failed to save cart list to cache for buyerId {}", buyerId, e);
+        }
+    }
+
+    @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackGetUserCartsFromCache")
+    @Override
+    public List<CartEntity> getUserCartsFromCache(Long buyerId) {
+        String cacheKey = getUserCartListCacheKey(buyerId);
+        return cacheUtil.getBucket(cacheKey);
+    }
+
+    public List<CartEntity> fallbackGetUserCartsFromCache(Long buyerId, Throwable throwable) {
+        log.error("Failed to get carts from cache for buyerId {}. Reason: {}", buyerId, throwable.getMessage());
+        return List.of();
+    }
+
+    private String getUserCartListCacheKey(Long buyerId) {
+        return CART_CACHE_KEY + buyerId;
     }
 
 

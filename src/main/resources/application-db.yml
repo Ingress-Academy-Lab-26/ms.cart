@@ -18,21 +18,6 @@ spring:
     default-schema: public
     drop-first: false
 
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-
-server:
-  port: 8080
 
 
-management:
-  endpoint:
-    health:
-      show-details: always
-  endpoints:
-    web:
-      exposure:
-        include: "*"
+
