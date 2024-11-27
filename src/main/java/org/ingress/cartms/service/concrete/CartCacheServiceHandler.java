@@ -94,7 +94,7 @@ public class CartCacheServiceHandler implements CartCacheService {
 
     @Async
     @CircuitBreaker(name = "redisCacheBreaker", fallbackMethod = "fallbackSaveCartsToCache")
-    @Retry(name = "redisCacheRetry", fallbackMethod = "fallbackSaveCartsToCache")
+    @Retry(name = REDIS_CACHE_RETRY, fallbackMethod = "fallbackSaveCartsToCache")
     @Override
     public void saveCartsToCache() {
         var cartEntityList = cartRepository.findAll();
@@ -135,8 +135,8 @@ public class CartCacheServiceHandler implements CartCacheService {
     }
 
     @Async
-    @CircuitBreaker(name = "redisCacheBreaker", fallbackMethod = "fallbackSaveSupplierIdToCache")
-    @Retry(name = "redisCacheRetry", fallbackMethod = "fallbackSaveSupplierIdToCache")
+    @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackSaveSupplierIdToCache")
+    @Retry(name = REDIS_CACHE_RETRY, fallbackMethod = "fallbackSaveSupplierIdToCache")
     @Override
     public void saveSupplierIdToCache(Long buyerId, Long productId, Long supplierId) {
         String cacheKey = getSupplierCacheKey(buyerId, productId);
@@ -144,7 +144,7 @@ public class CartCacheServiceHandler implements CartCacheService {
         log.info("SupplierId for buyerId {} and productId {} saved to cache.", buyerId, productId);
     }
 
-    @CircuitBreaker(name = "redisCacheBreaker", fallbackMethod = "fallbackGetSupplierIdFromCache")
+    @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackGetSupplierIdFromCache")
     @Override
     public Optional<Long> getSupplierIdFromCache(Long buyerId, Long productId) {
         String cacheKey = getSupplierCacheKey(buyerId, productId);
