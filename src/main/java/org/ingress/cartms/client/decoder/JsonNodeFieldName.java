@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum JsonNodeFieldName {
-    MESSAGE("message");
-
+    MESSAGE("message"),
+    CODE("code");
     private final String value;
 }

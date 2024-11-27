@@ -32,10 +32,9 @@ public class CartCacheServiceHandler implements CartCacheService {
     @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackSaveUserCartToCache")
     @Retry(name = REDIS_CACHE_RETRY, fallbackMethod = "fallbackSaveUserCartToCache")
     @Override
-    public void saveUserCartToCache(Long buyerId, CartEntity cart) {
+    public void saveUserCartToCache(Long buyerId, Long productId, CartEntity cart) {
 
-
-            String cacheKey = getUserCartCacheKey(buyerId, cart.getProductId());
+            String cacheKey = getUserCartCacheKey(buyerId, productId);
             cacheUtil.saveToCache(cacheKey, cart, CART_CACHE_EXPIRATION_COUNT, CART_CACHE_EXPIRATION_UNIT);
             log.info("Cart for buyerId {} and productId {} saved to cache.", buyerId, cart.getProductId());
     }
@@ -46,12 +45,6 @@ public class CartCacheServiceHandler implements CartCacheService {
     }
 
 
-//    @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackGetUserCartFromCache")
-//    @Override
-//    public CartEntity getUserCartFromCache(Long buyerId, Long productId) {
-//        return cacheUtil.getBucket(getUserCartCacheKey(buyerId, productId));
-//    }
-
     @CircuitBreaker(name = REDIS_CACHE_BREAKER, fallbackMethod = "fallbackGetUserCartFromCache")
     @Override
     public Optional<CartEntity> getUserCartFromCache(Long buyerId, Long productId) {
@@ -60,9 +53,9 @@ public class CartCacheServiceHandler implements CartCacheService {
     }
 
 
-    public CartEntity fallbackGetUserCartFromCache(Long buyerId, Long productId, Throwable throwable) {
+    public Optional fallbackGetUserCartFromCache(Long buyerId, Long productId, Throwable throwable) {
         log.error("Failed to get cart for buyerId {} and productId {} from cache due to Redis outage.", buyerId, productId, throwable);
-        return null;
+        return Optional.empty();
     }
 
 
@@ -140,6 +133,28 @@ public class CartCacheServiceHandler implements CartCacheService {
     private String getUserCartListCacheKey(Long buyerId) {
         return CART_CACHE_KEY + buyerId;
     }
+
+    @Async
+    @CircuitBreaker(name = "redisCacheBreaker", fallbackMethod = "fallbackSaveSupplierIdToCache")
+    @Retry(name = "redisCacheRetry", fallbackMethod = "fallbackSaveSupplierIdToCache")
+    @Override
+    public void saveSupplierIdToCache(Long buyerId, Long productId, Long supplierId) {
+        String cacheKey = getSupplierCacheKey(buyerId, productId);
+        cacheUtil.saveToCache(cacheKey, supplierId, CART_CACHE_EXPIRATION_COUNT, CART_CACHE_EXPIRATION_UNIT);
+        log.info("SupplierId for buyerId {} and productId {} saved to cache.", buyerId, productId);
+    }
+
+    @CircuitBreaker(name = "redisCacheBreaker", fallbackMethod = "fallbackGetSupplierIdFromCache")
+    @Override
+    public Optional<Long> getSupplierIdFromCache(Long buyerId, Long productId) {
+        String cacheKey = getSupplierCacheKey(buyerId, productId);
+        return Optional.ofNullable(cacheUtil.getBucket(cacheKey));
+    }
+
+    private String getSupplierCacheKey(Long buyerId, Long productId) {
+        return SUPPLIER_CACHE_KEY + buyerId + ":" + productId;
+    }
+
 
 
 }

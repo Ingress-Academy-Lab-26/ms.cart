@@ -1,8 +1,8 @@
 package org.ingress.cartms.client.decoder;
 
+import static org.ingress.cartms.client.decoder.JsonNodeFieldName.CODE;
 import static org.ingress.cartms.client.decoder.JsonNodeFieldName.MESSAGE;
-import static org.ingress.cartms.exception.ExceptionConstraints.CLIENT_ERROR;
-import static org.springframework.http.HttpStatus.Series.SERVER_ERROR;
+import static org.ingress.cartms.exception.ExceptionConstraints.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,7 +19,8 @@ public class CustomErrorDecoder implements ErrorDecoder {
 
     @Override
     public Exception decode(String methodKey, Response response) {
-        var errorMessage = CLIENT_ERROR;
+        var errorMessage = CLIENT_ERROR_MESSAGE;
+        var errorCode =CLIENT_ERROR_CODE;
         var statusCode = response.status();
 
         JsonNode jsonNode;
@@ -27,28 +28,18 @@ public class CustomErrorDecoder implements ErrorDecoder {
             jsonNode = new ObjectMapper().readValue(body, JsonNode.class);
         } catch (Exception e) {
             log.error("Failed to parse response body for method {} with status {}", methodKey, statusCode, e);
-            return new CustomFeignException(CLIENT_ERROR, statusCode);
+            return new CustomFeignException(CLIENT_ERROR_MESSAGE, CLIENT_ERROR_CODE, statusCode);
+        }
+        if (jsonNode.has(MESSAGE.getValue())) {
+            errorMessage = jsonNode.get(MESSAGE.getValue()).asText();
+        }
+        if (jsonNode.has(CODE.getValue())) {
+            errorCode = jsonNode.get(CODE.getValue()).asText();
         }
 
-        if (statusCode >= 400 && statusCode < 500) {
-            if (jsonNode.has(MESSAGE.getValue())) {
-                errorMessage = jsonNode.get(MESSAGE.getValue()).asText();
-            }
-            log.error("Client error while calling method {} with status {} and message: {}",
-                    methodKey, statusCode, errorMessage);
-            return new CustomFeignException(errorMessage, statusCode);
-        }
+        return new CustomFeignException(errorMessage , errorCode, statusCode);
 
-        if (statusCode >= 500) {
-            errorMessage = jsonNode.has(MESSAGE.getValue()) ? jsonNode.get(MESSAGE.getValue()).asText() : String.valueOf(SERVER_ERROR);
-            log.error("Server error while calling method {} with status {} and message: {}",
-                    methodKey, statusCode, errorMessage);
-            return new CustomFeignException(errorMessage, statusCode);
-        }
 
-        log.warn("Unexpected error while calling method {} with status {} and message: {}",
-                methodKey, statusCode, errorMessage);
-        return new CustomFeignException("Unexpected error: " + errorMessage, statusCode);
 
     }
 }

@@ -1,10 +1,10 @@
 package org.ingress.cartms.model.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.ingress.cartms.model.enums.CartStatus;
 
 import java.time.LocalDateTime;
 
@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class UserCartsResponse {
+public class UserCarts {
     private Long supplierId;
     private Long productId;
     private Integer quantity;
-    private CartStatus status;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd.MM.yyyy HH:mm", timezone = "UTC")
     private LocalDateTime createdAt;
 }

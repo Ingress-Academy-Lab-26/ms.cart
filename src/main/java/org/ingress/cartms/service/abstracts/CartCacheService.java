@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface CartCacheService {
 
-    void saveUserCartToCache(Long buyerId, CartEntity cart);
+    void saveUserCartToCache(Long buyerId, Long productId, CartEntity cart);
 
     Optional<CartEntity> getUserCartFromCache(Long buyerId, Long productId);
 
@@ -17,10 +17,14 @@ public interface CartCacheService {
 
     void deleteUserCartFromCache(Long buyerId, Long productId);
 
-    public void saveCartsToCache();
+    void saveCartsToCache();
 
     void saveUserCartsToCache(Long buyerId, List<CartEntity> carts);
 
     List<CartEntity> getUserCartsFromCache(Long buyerId);
+
+    void saveSupplierIdToCache(Long buyerId, Long productId, Long supplierId);
+
+    Optional<Long> getSupplierIdFromCache(Long buyerId, Long productId);
 }
 

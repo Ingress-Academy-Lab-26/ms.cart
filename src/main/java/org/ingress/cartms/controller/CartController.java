@@ -2,7 +2,7 @@ package org.ingress.cartms.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.ingress.cartms.model.request.CartRequest;
-import org.ingress.cartms.model.response.UserCartsResponse;
+import org.ingress.cartms.model.response.GroupedCartsBySupplier;
 import org.ingress.cartms.service.abstracts.CartService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -10,7 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 import javax.validation.Valid;
 import java.util.List;
-import java.util.Map;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.*;
@@ -40,7 +39,7 @@ public class CartController {
     @GetMapping
     @ResponseStatus(OK)
     @PreAuthorize("@authService.verifyToken(#accessToken)")
-    public Map<Long, List<UserCartsResponse>> getCartsByUserId(@RequestParam Long buyerId, @RequestHeader(AUTHORIZATION) String accessToken) {
+    public List<GroupedCartsBySupplier> getCartsByUserId(@RequestParam Long buyerId, @RequestHeader(AUTHORIZATION) String accessToken) {
         return cartService.getCartsByUserId(buyerId);
     }
 

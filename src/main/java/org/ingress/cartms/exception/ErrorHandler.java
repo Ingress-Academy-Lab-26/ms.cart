@@ -1,6 +1,5 @@
 package org.ingress.cartms.exception;
 
-import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.boot.web.servlet.error.DefaultErrorAttributes;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -50,45 +49,32 @@ public class ErrorHandler extends DefaultErrorAttributes {
         );
     }
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
+    public ResponseEntity<MethodArgumentNotValidExceptionResponse> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
         List<ConstraintsViolationError> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(fieldError -> new ConstraintsViolationError(
                         fieldError.getField(),
-                        //fieldError.getRejectedValue(),
                         fieldError.getDefaultMessage()
                 ))
                 .collect(Collectors.toList());
 
-        return buildErrorResponse(request, HttpStatus.BAD_REQUEST, "Validation error", errors);
+        return ResponseEntity.badRequest().body(buildValidationErrorResponse( errors));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleJsonParseException(HttpMessageNotReadableException ex, WebRequest request) {
+    public ResponseEntity<MethodArgumentNotValidExceptionResponse> handleJsonParseException(HttpMessageNotReadableException ex, WebRequest request) {
         List<ConstraintsViolationError> errors = List.of(new ConstraintsViolationError(
                 "JSON Parse Error",
                 "Invalid input format or missing required fields"
         ));
 
-        return buildErrorResponse(request, HttpStatus.BAD_REQUEST, "Validation error", errors);
+        return ResponseEntity.badRequest().body(buildValidationErrorResponse( errors));
     }
 
-    private ResponseEntity<Map<String, Object>> buildErrorResponse(WebRequest request, HttpStatus status, String message, List<ConstraintsViolationError> errors) {
-        Map<String, Object> attributes = getErrorAttributes(request, ErrorAttributeOptions.defaults());
-        attributes.put("status", status.value());
-        attributes.put("error", message);
-        attributes.put("path", ((ServletWebRequest) request).getRequest().getRequestURI());
-        attributes.put("fieldErrors", errors);
-        return new ResponseEntity<>(attributes, status);
+    private MethodArgumentNotValidExceptionResponse buildValidationErrorResponse(List<ConstraintsViolationError> errors) {
+        return MethodArgumentNotValidExceptionResponse.builder()
+                .error("Validation error")
+                .fieldErrors(errors)
+                .build();
     }
 
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ExceptionResponse> handle(AuthenticationException ex) {
-        log.error("AuthenticationException: ", ex);
-        return ResponseEntity.status(ex.getStatus()).body(
-                ExceptionResponse.builder()
-                        .code(ex.getCode())
-                        .message(ex.getMessage())
-                        .build()
-        );
-    }
 }

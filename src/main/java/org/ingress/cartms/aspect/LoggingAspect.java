@@ -5,7 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Pointcut;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.stereotype.Component;
+import org.ingress.cartms.annotation.Loggable;
+
 
 import org.springframework.stereotype.Component;
 
@@ -17,12 +20,10 @@ import java.util.Arrays;
 @Slf4j
 public class LoggingAspect {
 
-    @Pointcut("within(@org.ingress.cartms.annotation.Log *)")
-    public void loggingPointCut() {
-    }
+
 
     @SneakyThrows
-    @Around(value = "loggingPointCut()")
+    @Around("@within(Loggable) || @annotation(Loggable)")
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
         var methodName = joinPoint.getSignature().getName();
         var className = joinPoint.getTarget().getClass().getSimpleName();

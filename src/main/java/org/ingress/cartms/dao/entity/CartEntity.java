@@ -1,11 +1,22 @@
 package org.ingress.cartms.dao.entity;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.ingress.cartms.model.enums.CartStatus;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.Enumerated;
+import javax.persistence.EnumType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+import org.ingress.cartms.model.enums.CartStatus;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -19,6 +30,7 @@ import static javax.persistence.GenerationType.IDENTITY;
 @AllArgsConstructor
 @Builder
 @Entity
+@EqualsAndHashCode(of = "id")
 @Table(name = "cart")
 public class CartEntity implements Serializable {
 

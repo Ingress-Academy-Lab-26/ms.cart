@@ -4,15 +4,16 @@ databaseChangeLog:
       author: elvin
       changes:
         - createTable:
+            tableName: cart
             columns:
               - column:
+                  name: id
+                  type: BIGINT
                   autoIncrement: true
                   constraints:
                     nullable: false
                     primaryKey: true
                     primaryKeyName: pk_cart
-                  name: id
-                  type: BIGINT
               - column:
                   name: buyer_id
                   type: BIGINT
@@ -36,10 +37,24 @@ databaseChangeLog:
               - column:
                   name: status
                   type: VARCHAR(16)
+                  constraints:
+                    nullable: false
               - column:
                   name: created_at
-                  type: DATETIME
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
               - column:
                   name: updated_at
-                  type: DATETIME
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addIndex:
             tableName: cart
+            indexName: idx_cart_buyer_product
+            columns:
+              - column:
+                  name: buyer_id
+              - column:
+                  name: product_id
+            unique: false
