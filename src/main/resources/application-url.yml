@@ -1,0 +1,14 @@
+client:
+  ms-auth:
+    url: http://localhost:8084
+  ms-product:
+    url: http://localhost:8083
+
+redis:
+  server:
+    urls: redis://localhost:6379
+
+rabbitmq:
+  publisher-service:
+    queue: PUBLISHER_Q
+    dlq: PUBLISHER_DLQ
